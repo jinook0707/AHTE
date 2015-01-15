@@ -11,7 +11,8 @@ This app
     with recordings with other camera(s) by using Arduino and pySerial.
 
 ----------------------------------------------------------------------
-Copyright (C) 2014 Jinook Oh, W. Tecumseh Fitch
+Copyright (C) 2014 Jinook Oh, W. Tecumseh Fitch for ERC Advanced Grant 
+SOMACCA # 230604 
 - Contact: jinook.oh@univie.ac.at, tecumseh.fitch@univie.ac.at
 
 This program is free software: you can redistribute it and/or modify
