@@ -27,7 +27,7 @@ Required files: Session video file (MP4) and corresponding LOG file (from expmt/
    The script will go through each frame until it detects any LED light is turned on.
    The time delay will be written in a popup window.
    This information should be written in the corresponding log file.
-   ( e.g.: \# In the recorded movie, LED was on at 21.24 seconds. Thus, 21.356 seconds have to be added to the time after session-start in this log file to get the time in the movie.
+   ( e.g.: \# In the recorded movie, LED was on at 21.24 seconds. Thus, 21.356 seconds have to be added to the time after session-start in this log file to get the time in the movie. - The difference between 21.356 and 21.24 is due to the delay of 'm_run_expmt.py' until it turns on LEDs after the program start. )
 
 2. Run m_extract_frames.py
 
@@ -46,10 +46,9 @@ Required files: Session video file (MP4) and corresponding LOG file (from expmt/
 
  Requirements :
   * The current working directory should have 'results' directory, which has directories containing relevant extracted frames from session video MP4 file.
-  * This directory name has information segmented by underbar, '\_'.
+  This directory name has information segmented by underbar, '\_'.
   \[Group\]\_\[Individual-name\]\_\[Trial\#\]\_\[Stimulus\]\_\[Stim.numbering\] (e.g.: G2_Kobold_01_BBBA_1)
-
-  Template head image as named as with the group name and the individual's name. (e.g.: G2_Kobold_head.jpg)
+  * Template marmoset head image as named as with the group name and the individual's name. (e.g.: G2_Kobold_head.jpg)
 
  This script will search for directories containing extracted frame images and show the first frame of the first directory as it begins.
 
