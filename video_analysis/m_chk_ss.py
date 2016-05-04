@@ -2,6 +2,22 @@
 This is for calculating the exact time of session start via checking 
 LED color. (head turning experiment of common marmoset monkeys)
 
+There will be 4 squares in a frame when a movie file was opened.
+These 4 squares should be clicked and dragged to where 4 LED light 
+bulbs are so that these squares become bounding rects for each 4 LEDs.
+Then, "Base ZM of LEDs" buttons should be clicked to store the zeroth
+moment of each rect in the first frame.
+Then, press Spabebar key. The script will go through each frame until
+it detects any LED light is turned on.
+The time delay will be written in a popup window.
+This information should be written in the corresponding log file.
+------
+e.g.)
+# In the recorded movie, LED was on at 21.24 seconds.
+# Thus, 21.356 seconds have to be added to the time after session-start in this log file 
+# to get the time in the movie.
+------
+
 ----------------------------------------------------------------------
 Copyright (C) 2014 Jinook Oh, W. Tecumseh Fitch for ERC Advanced Grant 
 SOMACCA # 230604 
@@ -36,52 +52,7 @@ import cv2
 import cv2.cv as cv
 import numpy as np
 
-#------------------------------------------------
-
-def GNU_notice(idx=0):
-    '''
-      function for printing GNU copyright statements
-    '''
-    if idx == 0:
-        print '''
-Experimenter Copyright (c) 2014 Jinook Oh, W. Tecumseh Fitch.
-This program comes with ABSOLUTELY NO WARRANTY; for details run this program with the option `-w'.
-This is free software, and you are welcome to redistribute it under certain conditions; run this program with the option `-c' for details.
-'''
-    elif idx == 1:
-        print '''
-THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
-'''
-    elif idx == 2:
-        print '''
-You can redistribute this program and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-'''
-
-#------------------------------------------------
-
-def writeFile(fileName, txt):
-# Function for writing texts into a file
-    if debug: print 'writeFile'
-    file = open(fileName, 'a')
-    if file:
-        file.write(txt)
-        file.close()
-    else:
-        raise Exception("unable to open [" + fileName + "]")
-
-#------------------------------------------------
-
-def get_time_stamp():
-    if debug: print 'get_time_stamp'
-    ts = datetime.now()
-    ts = ('%.4i_%.2i_%.2i_%.2i_%.2i_%.2i_%.6i')%(ts.year, 
-                                                 ts.month, 
-                                                 ts.day, 
-                                                 ts.hour, 
-                                                 ts.minute, 
-                                                 ts.second, 
-                                                 ts.microsecond)
-    return ts
+from common_funcs import GNU_notice, writeFile, get_time_stamp, PopupDialog
 
 #====================================================
 
@@ -122,7 +93,7 @@ class MChkSessionStart(wx.Frame):
         posX += btn_choose_file.GetSize()[0] + 20
         btn_base_cm = wx.Button( self.panel, 
                                  -1, 
-                                 "Base CM of LEDs", 
+                                 "Base ZM of LEDs", 
                                  pos = (posX, posY-5), 
                                  size = (150, 20) )
         btn_base_cm.Bind(wx.EVT_LEFT_DOWN, self.onStoreLEDBaseCM)
@@ -300,7 +271,7 @@ class MChkSessionStart(wx.Frame):
                                UR = [_mx+150, _my-100, 15, 15],
                                LL = [_mx-150, _my-50, 15, 15],
                                LR = [_mx+150, _my-50, 15, 15] ) # [x, y, w, h]
-        self.LED_base_cm = dict (UL = -1, UR = -1, LL = -1, LR = -1) # base central moment
+        self.LED_base_m = dict (UL = -1, UR = -1, LL = -1, LR = -1) # base zeroth moment
 
         ### init openCV related variables
         self.curr_frame = cv.CreateImage(self.frame_size, 8, 3)
@@ -323,7 +294,7 @@ class MChkSessionStart(wx.Frame):
     #------------------------------------------------
 
     def onStoreLEDBaseCM(self, event):
-    # check each LED's base central moments
+    # check each LED's base zeroth moments
         for key in self.LED_rects.iterkeys():
             self.find_color((self.LED_rects[key][0],self.LED_rects[key][1],self.LED_rects[key][2],self.LED_rects[key][3]), 
                             self.orig_img, 
@@ -334,7 +305,7 @@ class MChkSessionStart(wx.Frame):
             moments = cv.Moments(img_mat)
             cm = cv.GetCentralMoment(moments, 0, 0)
             self.LED_base_cm[key] = cm
-        self.show_msg('Central moment of each LED is stored.')
+        self.show_msg('Zeroth moment of each LED is stored.')
 
     #------------------------------------------------
 
@@ -459,30 +430,6 @@ class MChkSessionStart(wx.Frame):
         self.Destroy()
         
 
-# ===========================================================
-
-class PopupDialog(wx.Dialog):
-# Class for showing any message to the participant
-    def __init__(self, parent = None, id = -1, title = "Message", inString = "", font = None, pos = None, size = (200, 150), cancel_btn = False):
-        wx.Dialog.__init__(self, parent, id, title)
-        self.SetSize(size)
-        if pos == None: self.Center()
-        else: self.SetPosition(pos)
-        txt = wx.StaticText(self, -1, label = inString, pos = (20, 20))
-        txt.SetSize(size)
-        if font == None: font = wx.Font(12, wx.MODERN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, False, "Arial", wx.FONTENCODING_SYSTEM)
-        txt.SetFont(font)
-        txt.Wrap(size[0]-30)
-        okButton = wx.Button(self, wx.ID_OK, "OK")
-        b_size = okButton.GetSize()
-        okButton.SetPosition((size[0] - b_size[0] - 20, size[1] - b_size[1] - 40))
-        okButton.SetDefault()
-        if cancel_btn == True:
-            cancelButton = wx.Button(self, wx.ID_CANCEL, "Cancel")
-            b_size = cancelButton.GetSize()
-            cancelButton.SetPosition((size[0] - b_size[0]*2 - 40, size[1] - b_size[1] - 40))
-        self.Center()
-
 #====================================================
 
 class MFE_App(wx.App):
@@ -494,16 +441,7 @@ class MFE_App(wx.App):
 
 #====================================================
 
-# define the current working directory depending on
-# whether it's an app or not.
 CWD = os.getcwd()
-parent_dir = os.path.split(CWD)[0]
-info_plist_path = os.path.join(parent_dir, 'Info.plist')
-if os.path.isfile(info_plist_path):
-    plist_data = plistlib.readPlist(info_plist_path)
-    if plist_data["CFBundleDisplayName"] == 'm_ef':
-        for i in xrange(3): CWD = os.path.split(CWD)[0]    
-
 debug = False
 
 if __name__ == "__main__":

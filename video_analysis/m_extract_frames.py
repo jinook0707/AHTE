@@ -1,10 +1,12 @@
 '''
-This script is for generating JPG images of -5 ~ +5 second around 
+This script should be called with two arguments; the 1st argument is 
+LOG file path and the 2nd argument is MP4 file path.
+This script is for extracting JPG images of -5 ~ +5 second around 
 the onset of stimulus play.
 (head turning experiment of common marmoset monkeys)
 
-Prerequisite :
-1) LOG file & corresponding MP4 file (should be 1:1 match)
+Requirements :
+1) LOG file & corresponding MP4 file
 2) LOG file should have the comment lines after the session start, 
 looks like below.
 ------
@@ -13,6 +15,11 @@ looks like below.
 # to get the time in the movie.
 ------
 
+If MP4 file has the proper name (format: Group-name_Individual-name),
+this script will generate directory named as following,
+[Group]_[Individual-name]_[Trial#]_[Stimulus]_[Stim.numbering],
+and extract relevant frame image (JPG) into the directory.
+
 How it works :
 LOG file has the information when the stimulus was played during a 
 session. But the session LOG recording itself started some time after 
@@ -20,7 +27,7 @@ the movie recording started. With the aforementioned information
 (21.356 seconds from the above example. This time is obtained from 
 running the script, 'm_chk_ss.py'), this script calculates the time 
 when the stimulus was played in the movie file, then it writes the 
-calculated time in LOG, and generates a folder containing JPG images 
+calculated time in LOG, and generates a directory containing JPG images 
 of -5 ~ +5 seconds around the onset of stimulus play.
 (It also crops the image to eliminate irrelevant surroundings.)
 
@@ -47,26 +54,7 @@ from os import path, mkdir, remove
 from sys import argv
 from subprocess import call
 
-#------------------------------------------------
-
-def GNU_notice(idx=0):
-    '''
-      function for printing GNU copyright statements
-    '''
-    if idx == 0:
-        print '''
-Experimenter Copyright (c) 2014 Jinook Oh, W. Tecumseh Fitch.
-This program comes with ABSOLUTELY NO WARRANTY; for details run this program with the option `-w'.
-This is free software, and you are welcome to redistribute it under certain conditions; run this program with the option `-c' for details.
-'''
-    elif idx == 1:
-        print '''
-THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
-'''
-    elif idx == 2:
-        print '''
-You can redistribute this program and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-'''
+from common_funcs import GNU_notice
 
 #------------------------------------------------
 

@@ -2,6 +2,27 @@
 This is for analyzing the video data and calculating the head 
 direction. (head turning experiment of common marmoset monkeys)
 
+Requirements :
+1) The current working directory should have 'results' directory,
+which has directories containing relevant extracted frames from 
+session video MP4 file.
+This directory name has information segmented by underbar, '_'.
+[Group]_[Individual-name]_[Trial#]_[Stimulus]_[Stim.numbering]
+e.g.: G2_Kobold_01_BBBA_1
+2) Template head image as named as with the group name and the
+individual's name.
+e.g.: G2_Kobold_head.jpg
+
+This script will search for directories containing extracted frame
+images and show the first frame of the first directory as it begins.
+There is a grey horizontal line denoting where the feeding hole is.
+It should be click-and-dragged to the bottom of the feeding hole,
+once at the beginning.
+Then spacebar should be pressed to start/stop video analysis.
+It will go through all the directories in 'results' directory, 
+generating a result CSV file for each directory,  named as same as 
+the directory.
+
 ----------------------------------------------------------------------
 Copyright (C) 2014 Jinook Oh, W. Tecumseh Fitch for ERC Advanced Grant 
 SOMACCA # 230604 
@@ -38,52 +59,8 @@ import numpy as np
 from scipy.cluster.hierarchy import fclusterdata
 from scipy import polyfit, polyval
 
-#------------------------------------------------
+from common_funcs import GNU_notice, writeFile, get_time_stamp, PopupDialog
 
-def GNU_notice(idx=0):
-    '''
-      function for printing GNU copyright statements
-    '''
-    if idx == 0:
-        print '''
-Experimenter Copyright (c) 2014 Jinook Oh, W. Tecumseh Fitch.
-This program comes with ABSOLUTELY NO WARRANTY; for details run this program with the option `-w'.
-This is free software, and you are welcome to redistribute it under certain conditions; run this program with the option `-c' for details.
-'''
-    elif idx == 1:
-        print '''
-THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU. SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
-'''
-    elif idx == 2:
-        print '''
-You can redistribute this program and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-'''
-
-#------------------------------------------------
-
-def writeFile(fileName, txt):
-# Function for writing texts into a file
-    if debug: print 'writeFile'
-    file = open(fileName, 'a')
-    if file:
-        file.write(txt)
-        file.close()
-    else:
-        raise Exception("unable to open [" + fileName + "]")
-
-#------------------------------------------------
-
-def get_time_stamp():
-    if debug: print 'get_time_stamp'
-    ts = datetime.now()
-    ts = ('%.4i_%.2i_%.2i_%.2i_%.2i_%.2i_%.6i')%(ts.year, 
-                                                 ts.month, 
-                                                 ts.day, 
-                                                 ts.hour, 
-                                                 ts.minute, 
-                                                 ts.second, 
-                                                 ts.microsecond)
-    return ts
 
 # --------------------------------------------------
 
@@ -163,16 +140,6 @@ class MarmosetVideoAnalysis(wx.Frame):
         self.sTxt_fn = wx.StaticText(self.panel, id=-1, pos = (posX, posY), label = 'FolderName: ')
         posX += 300
         self.sTxt_fr = wx.StaticText(self.panel, id=-1, pos = (posX, posY), label = 'Frame: ')
-        
-        '''
-        posX += self.sTxt_fr.GetSize()[0] + 150
-        btn_base_cm = wx.Button( self.panel, 
-                                 -1, 
-                                 "Store base CM of LEDs", 
-                                 pos = (posX, posY-5), 
-                                 size = (200, 20) )
-        btn_base_cm.Bind(wx.EVT_LEFT_DOWN, self.onStoreLEDBaseCM)
-        '''
 
         posX = 5
         posY += self.sTxt_fn.GetSize()[1] + 1
@@ -461,55 +428,7 @@ class MarmosetVideoAnalysis(wx.Frame):
 
         cv.Line(self.curr_frame, (0,self.feeding_hole_Y-1), (self.frame_size[0],self.feeding_hole_Y-1), (50,50,50), 1) # bottom of feeding hole
 
-        '''
-        # ------------------------------------------
-        ### checking LEDs are off for now (20140907)
-        # ------------------------------------------
-
-        for key in self.LED_rects.iterkeys():
-            _r = self.LED_rects[key]
-            cv.Rectangle(self.curr_frame, (_r[0],_r[1]), (_r[0]+_r[2],_r[1]+_r[3]), (50,50,50), 1) # draw rect around 4 LEDs
-        LED_on = self.chk_LED()
-        ### process LED signal
-        for i in xrange(len(LED_on)):
-            if LED_on[i] == True and self.LED_prev_on[i] == False: # previously off LED became on
-                if self.LED_signal_start_fi == -1: self.LED_signal_start_fi = copy(self.fi)
-                self.LED_num[i] += 1
-                self.LED_last_signal_fi[i] = copy(self.fi)
-        self.LED_prev_on = copy(LED_on)
-        # if all the LEDs' last signals happened more than 24 frames ago,
-        # (signal is 0.1s ON + 0.1s OFF, and the GOPRO setting is 120 fps, thus 12 frames ON + 12 frame OFF)
-        # it means the signal bout is finished
-        if self.LED_last_signal_fi != [-1, -1, -1, -1] \
-           and self.fi - self.LED_last_signal_fi[0] > 26 \
-           and self.fi - self.LED_last_signal_fi[1] > 26 \
-           and self.fi - self.LED_last_signal_fi[2] > 26 \
-           and self.fi - self.LED_last_signal_fi[3] > 26:
-            self.outputCSV.write( '# IR-LED-signal %s, Start-frame-index %i\n'%(str(self.LED_num).replace(',','/'), self.LED_signal_start_fi) )
-            self.LED_signal_start_fi = -1
-            self.LED_last_signal_fi = [-1, -1, -1, -1]
-            self.LED_num = [0, 0, 0, 0]
-        '''
-
         self.grey_img = self.preprocessing(self.orig_img)
-
-        '''
-        ### motion detection
-        if self.first_run:
-            self.first_run = False
-            cv.ConvertScale(self.grey_img, self.grey_avg, 1.0, 0.0)
-        else:
-            cv.RunningAvg(self.grey_img, self.grey_avg, 0.5, None)
-        cv.ConvertScale(self.grey_avg, self.tmp_grey_img, 1.0, 0.0) # Convert the scale of the moving average. (for Motion-detection)
-        cv.AbsDiff(self.grey_img, self.tmp_grey_img, self.diff_grey_img) # Minus the current frame from the moving average. (for Motion-detection)
-        cv.Canny(self.diff_grey_img, self.diff_grey_img, 10, 15) # Find Edges for Motion-detection
-        m_pt1_list, m_pt2_list, m_min_pt1, m_max_pt2, m_center_pt_list = self.get_points(self.diff_grey_img, self.s_frag_th) # get some useful points from the movement's contours
-        m_sz = 0
-        for pti in xrange(len(m_pt1_list)):
-            m_sz += abs(m_pt1_list[pti][0] - m_pt2_list[pti][0]) + abs(m_pt1_list[pti][1] - m_pt2_list[pti][1])
-        m_info = "Motion size & number of fractions: %i, %i"%(m_sz, len(m_pt1_list))
-        cv.PutText( self.curr_frame, m_info, (150, 20), self.font, (255,255,255) )
-        '''
 
         # ------------------------------------------------
         # SURF extraction starts
@@ -526,8 +445,8 @@ class MarmosetVideoAnalysis(wx.Frame):
         # build feature detector and descriptor extractor
         hessian_threshold = 300
         detector = cv2.SURF(hessian_threshold)
-        (hkeypoints, hdescriptors) = detector.detect(hgrey, None, useProvidedKeypoints = False)
-        (nkeypoints, ndescriptors) = detector.detect(ngrey, None, useProvidedKeypoints = False)
+        (hkeypoints, hdescriptors) = detector.detectAndCompute(hgrey, None, useProvidedKeypoints = False)
+        (nkeypoints, ndescriptors) = detector.detectAndCompute(ngrey, None, useProvidedKeypoints = False)
 
         # extract vectors of size 64 from raw descriptors numpy arrays
         rowsize = len(hdescriptors) / len(hkeypoints)
@@ -811,37 +730,10 @@ class MarmosetVideoAnalysis(wx.Frame):
         if debug: print 'MarmosetVideoAnalysis.onExit'
         if self.dirname != None: self.outputCSV.close()
         self.Destroy()
-        
-#====================================================
-
-class PopupDialog(wx.Dialog):
-    def __init__(self, parent = None, id = -1, title = "MVA_Dialog", inString = "", size = (200, 150)):
-        if debug: print 'PopupDialog.__init__'
-
-        wx.Dialog.__init__(self, parent, id, title)
-        self.SetSize(size)
-        self.Center()
-        txt = wx.StaticText(self, -1, label = inString, pos = (20, 20))
-        txt.SetSize(size)
-        txt.SetFont(wx.Font(15, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False))
-        txt.Wrap(size[0]-40)
-        okButton = wx.Button(self, wx.ID_OK, "OK")
-        b_size = okButton.GetSize()
-        okButton.Position = (size[0] - b_size[0] - 20, size[1] - b_size[1] - 40)
-        okButton.SetDefault()
 
 #====================================================
 
-# define the current working directory depending on
-# whether it's an app or not.
 CWD = os.getcwd()
-parent_dir = os.path.split(CWD)[0]
-info_plist_path = os.path.join(parent_dir, 'Info.plist')
-if os.path.isfile(info_plist_path):
-    plist_data = plistlib.readPlist(info_plist_path)
-    if plist_data["CFBundleDisplayName"] == 'mva':
-        for i in xrange(3): CWD = os.path.split(CWD)[0]    
-
 debug = False
 results_dir = os.path.join(CWD, "results")
 
